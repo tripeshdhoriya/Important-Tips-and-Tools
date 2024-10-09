@@ -1,0 +1,121 @@
+Configration Git
+ 
+ Set global level git configration:
+	- git config --global user.name "My Name"
+	- git config --global user.email "test@gmail.com"
+	- git config --list
+	
+ Set local level git Configration
+	- git config --local user.name "My Name"
+	- git config --local user.email "test@gmail.com"
+	- git config --list
+	
+	
+# To remove or update the global username and email
+	- git config --global --unset user.name
+	- git config --global --unset user.email
+	- git config --local --unset user.name
+	- git config --local --unset user.email
+	
+# Clone and Status
+	Clone - cloning a repository on our local Machine
+	
+	      - git clone <--some link-->
+    
+	Status - Display the state of the code
+	
+		   - git status
+		   
+# Add and Commite		   
+	add - adds new or chnaged files in your working dir to the git staginf area
+		
+		- git add <file name>
+			- git add . (to add multiple files at a time)
+		
+	commit - it is the record of change
+	
+		- git commit -m "some mesaeg"
+		
+# Push Command
+	
+	push - upload local repo content to remote repo
+	
+	    - git push origin main
+		
+# Init Command
+	init - used to create a new git repo
+	
+	git init
+	
+	git remote add origin <link>
+	
+	git remote -v (To verify remote)
+	
+	git branch  (TO verify branch)
+	
+	git branch -M main (TO rename branch)
+	
+	git push origin main
+	
+	git pull origin main (To download new change in currnt dir from github)
+
+
+# Branch Command
+
+	git branch (To check branch)
+	
+	git branch -M main (To rename branch)
+	
+	git checkout <branch name>   (To navigate)
+	
+	git checkout -b <New branch name>   (To create new branch)
+	
+	git branch -d <branch name>  (To delete branch)
+
+# Merging Code
+
+	way 1
+		
+	git diff <branchname>    (To compare commit,branches,files and more)
+	
+	git merge <>branchname>  (TO merge 2 branch)
+	
+	way 2
+	
+	Create a PR  (Pull Reques)
+	
+#Pull command
+
+	git pull oring main (to fetch and download content from github to local)
+	
+	
+# Resolving Merge Conflict
+
+An event that take place whne Got is unabel to automaticall resolve diffrence in code between two commit.
+
+#Undoing Chnages
+
+case 1: stage chnages
+	
+	git reset <file name>
+	git reset
+	
+case 2: commited chnages(for one commit)
+
+	git reset HEAD~1
+	
+case 3: Commited chnages (for many commits)
+
+	git reset<commit hash>
+	
+	git reset --hard<commit hash>
+	
+	
+#git log Command
+	git log (To check history)
+	
+#fork 
+
+A fork is a new reopsitory that share code and visibilty settings with the original "upstream" repo.
+
+fork is rough copy
