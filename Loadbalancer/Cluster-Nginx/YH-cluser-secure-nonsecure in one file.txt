@@ -1,0 +1,58 @@
+upstream backend {
+   # hash $http_user_agent consistent;
+   # ip_hash;
+    server 192.168.2.143:8443;
+    server 192.168.2.183:8443;
+    server 192.168.2.197:8443;
+}
+upstream backend4 {
+   # hash $http_user_agent consistent;
+   # ip_hash;
+    server 192.168.2.143:8095;
+    server 192.168.2.183:8095;
+    server 192.168.2.197:8095;
+}
+
+server {
+    listen 8443 ssl;
+    #server_name 192.168.2.132;
+
+    ssl_certificate /etc/nginx/ssl/backend.crt;
+    ssl_certificate_key /etc/nginx/ssl/backend.key;
+
+    location / {
+        proxy_pass https://backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_buffering off;
+        keepalive_requests 100;
+        proxy_connect_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_read_timeout 3600s;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        include proxy_params;
+    }
+}
+
+server {
+    listen 8095;
+
+    location / {
+        proxy_pass http://backend4;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_buffering off;
+        keepalive_requests 100;
+        proxy_connect_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_read_timeout 3600s;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        include proxy_params;
+    }
+}

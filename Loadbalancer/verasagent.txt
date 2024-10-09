@@ -1,0 +1,35 @@
+server {
+    listen 8082;
+    server_name 20.163.157.64;
+
+    location /veras {
+        return 301 https://verasagent-chevron.sigmastream.com$request_uri;  # Redirect to https://verasagent-chevron.sigmastream.com
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name verasagent-chevron.sigmastream.com;
+
+    ssl_certificate /etc/letsencrypt/live/verasagent-chevron.sigmastream.com/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/verasagent-chevron.sigmastream.com/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+
+    location / {
+        proxy_pass http://20.163.157.64:8081/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Cookie $http_cookie;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Cookie $http_cookie;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 2h; # Extend session timeout to 2 hours
+
+    }
+}

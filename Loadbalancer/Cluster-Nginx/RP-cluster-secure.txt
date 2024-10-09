@@ -1,0 +1,40 @@
+upstream backend2 {
+    ip_hash;
+    server 192.168.2.29:9443;
+    server 192.168.2.146:9443;
+    server 192.168.2.145:9443;
+}
+
+server {
+    listen 9443 ssl;
+    ssl_certificate /etc/nginx/ssl/backend.crt;
+    ssl_certificate_key /etc/nginx/ssl/backend.key;
+
+    location / {
+        proxy_pass https://backend2;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_buffering off;
+        keepalive_requests 100;
+        proxy_connect_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_read_timeout 3600s;
+    }
+}
+
+server {
+    listen 9090;
+
+    location / {
+        proxy_pass http://192.168.2.95/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_buffering off;
+        keepalive_requests 100;
+        proxy_connect_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_read_timeout 3600s;
+    }
+}

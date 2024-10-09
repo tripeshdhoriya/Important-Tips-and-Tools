@@ -1,0 +1,64 @@
+upstream backend {
+    ip_hash;
+    server 20.163.157.64:8181;
+   # server 20.163.157.64:8433;
+    server 40.121.4.83:8181;
+   # server 40.121.4.83:8443;
+}
+
+server {
+    listen 80 default_server;
+    server_name yellowhammer.gleaminglife.in;
+
+    location / {
+        return 301 https://$server_name$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl default_server;
+    server_name yellowhammer.gleaminglife.in;
+
+    ssl_certificate /etc/letsencrypt/live/yellowhammer.gleaminglife.in/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/yellowhammer.gleaminglife.in/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+    location / {
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+        proxy_set_header X-Nginx-Proxy true;
+        proxy_pass http://backend;
+        proxy_buffering off;
+        # proxy_redirect off;
+        # proxy_redirect http://backend:8095/ https://backend;
+        keepalive_requests 100;
+    }
+}
+
+
+
+
+server {
+    listen 443 ssl ;
+    server_name rockpigeon.gleaminglife.in; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/rockpigeon.gleaminglife.in/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/rockpigeon.gleaminglife.in/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+    location / {
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+        proxy_set_header X-Nginx-Proxy true;
+        proxy_pass http://backend;
+        proxy_buffering off;
+        # proxy_redirect off;
+        # proxy_redirect http://backend:8095/ https://backend;
+        keepalive_requests 100;
+    }
+
+
+}
