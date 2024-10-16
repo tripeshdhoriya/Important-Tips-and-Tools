@@ -1,0 +1,172 @@
+version: "3.9"
+
+services:
+  webclient:
+    container_name: YellowHammer-Client
+    mem_limit: 1024m
+    restart: always
+    networks:
+      - sigmastream
+    image: yh-webclient:latest
+    depends_on:
+      - server
+    volumes:
+      #- ./AppData/webclient/config:/app/sigmastream/yellowhammer/webclient/config
+      #- ./AppData/webclient/logs:/app/sigmastream/yellowhammer/webclient/logs
+      #- ./AppData/webclient/etc:/app/sigmastream/yellowhammer/webclient/etc
+      #- ./AppData/webclient/i18n:/app/sigmastream/yellowhammer/webclient/i18n
+      #- ./AppData/webclient/webapp:/app/sigmastream/yellowhammer/webclient/webapp
+      #- ./AppData/webclient/yh-webclient.jar:/app/sigmastream/yellowhammer/webclient/yh-webclient.jar
+      #- ./AppData/webclient/logger:/app/sigmastream/yellowhammer/webclient/logger
+      - ./AppData/webclient/config/config.properties:/app/sigmastream/yellowhammer/webclient/config/config.properties
+      - ./AppData:/app/sigmastream/yellowhammer/webclient/AppData/
+    ports:
+      - "8447:8447"
+      - "8097:8097"
+
+  db:
+    container_name: PostgreSQL
+    mem_limit: 2048m
+    image: postgres:13
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres/13/db.sql:/docker-entrypoint-initdb.d/db.sql
+      - ./postgres/13/restore.sh:/docker-entrypoint-initdb.d/restore.sh  
+      - ./postgres/13/yh_dump.sql:/docker-entrypoint-initdb.d/yh_dump.sql 
+      - ./postgres/13/KFSeed.sql:/docker-entrypoint-initdb.d/KFSeed.sql    
+      - ./postgres/13/KFSeed.sql:/docker-entrypoint-initdb.d/rtv.sql       
+      - ./postgres/13/data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 20s
+      timeout: 10s
+      start_period: 1m
+      retries: 5
+    networks:
+      - sigmastream
+
+  server:
+    container_name: Central-YellowHammer-Server
+    mem_limit: 3072m
+    restart: always
+    ports:
+      - "8443:443"
+      - "8095:80"
+      - "4000:5000"
+    image: yh-server:latest
+    mac_address: 02:42:ac:12:00:07
+    depends_on:
+      - mongodb
+      - db
+    networks:
+      - sigmastream
+    volumes:
+      - ./AppData:/app/sigmastream/yellowhammer/server/yellowhammer/yellowhammer-base/AppData
+      - ./AppData/start.ini:/app/sigmastream/yellowhammer/server/yellowhammer/yellowhammer-base/start.ini
+      - ./AppData/config-ext.properties:/app/sigmastream/yellowhammer/server/yellowhammer/yellowhammer-base/config-ext.properties
+
+  mongodb:
+    container_name: MongoDB
+    mem_limit: 2048m
+    image: mongo:3.6
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - sigmastream
+    volumes:
+      - ./mongo/data:/data/db
+    ports:
+      - "27017:27017"
+      
+  cassandra:
+    container_name: cassandra
+    image: cassandra:4.1
+    mem_limit: 4096m
+    restart: always
+    ports:
+      - "9042:9042"
+    environment:
+      - CASSANDRA_CLUSTER_NAME=SigmastreamCluster
+      - CASSANDRA_NUM_TOKENS=256
+      - MAX_HEAP_SIZE=2G
+      - HEAP_NEWSIZE=800M
+      - CASSANDRA_DC=DC1
+      - CASSANDRA_RACK=RAC1
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+    volumes:
+      - ./cassandra/data:/var/lib/cassandra
+      - ./cassandra/dump:/dump/
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "describe keyspaces"]
+      interval: 30s
+      timeout: 20s
+      retries: 10
+    networks:
+      - sigmastream
+      
+  bcserver:
+    container_name: Bluecardinal-Server
+    mem_limit: 1024m
+    restart: always
+    networks:
+      - sigmastream
+    depends_on:
+      cassandra:
+        condition: service_healthy
+    ports:
+     - "8181:8181"
+     - "5000:4000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "7" 
+    mac_address: 02:42:ac:12:00:06
+    image: bluecardinal:latest
+    volumes:
+      - ./BcData/deploy:/app/sigmastream/BlueCardinal/BlueCardinal-Server/deploy
+      - ./BcData/config:/app/sigmastream/BlueCardinal/BlueCardinal-Server/config
+      - ./BcData/logs:/app/sigmastream/BlueCardinal/BlueCardinal-Server/logs
+      - ./BcData/start-service.sh:/app/sigmastream/BlueCardinal/BlueCardinal-Server/start-service.sh
+      - ./BcData/output:/app/sigmastream/BlueCardinal/BlueCardinal-Server/output
+      - ./BcData/invalidConfig:/app/sigmastream/BlueCardinal/BlueCardinal-Server/invalidConfig
+      - ./BcData/validConfig:/app/sigmastream/BlueCardinal/BlueCardinal-Server/validConfig
+      - ./BcData/bluecardinal-core.jar:/app/sigmastream/BlueCardinal/BlueCardinal-Server/bluecardinal-core.jar
+      - ./BcData/yguard-1.1.0.log.xml:/app/sigmastream/BlueCardinal/BlueCardinal-Server/yguard-1.1.0.log.xml
+      - ./BcData/lib:/app/sigmastream/BlueCardinal/BlueCardinal-Server/lib
+      - ./BcData/Glowroot:/app/sigmastream/BlueCardinal/BlueCardinal-Server/Glowroot
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  hbserver:
+    container_name: hummingbird_server
+    mem_limit: 3072m
+    restart: always
+    networks:
+      - sigmastream
+    image: hummingbird
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./HBData/log:/home/sigmastream/HummingBird/server/log
+      - ./HBData/config/config-ext.properties:/home/sigmastream/HummingBird/server/jettyhome/work/config-ext.properties
+      - ./HBData/configuration:/home/sigmastream/HummingBird/server/configuration
+      - ./HBData/plugins:/home/sigmastream/HummingBird/server/plugins
+      - ./HBData/myEnvironment.sh:/home/sigmastream/HummingBird/server/utils/myEnvironment.sh
+      - ./HBData/idempiere.properties:/home/sigmastream/HummingBird/server/idempiere.properties
+      - ./HBData/idempiereEnv.properties:/home/sigmastream/HummingBird/server/idempiereEnv.properties
+    ports:
+      - "443:7443"
+      - "80:7070"
+      - "4141:4000"
+
+networks:
+  sigmastream:
+    driver: bridge

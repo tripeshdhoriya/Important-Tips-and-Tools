@@ -1,0 +1,15 @@
+URL : http://localhost:8983/solr 
+
+
+PATH : /opt/Sigmastream.KingFisher/solr/bin 
+
+ 
+For start service : (make sure you are on right directory) 
+
+ 
+
+./solr start 
+
+./solr stop 
+
+./solr statu 

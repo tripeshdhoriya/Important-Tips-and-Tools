@@ -1,0 +1,43 @@
+node {
+    parallel server: {
+        stage ('Deploy-on-CVX-YHUSEAST')
+            {
+            if (env.CVX_YHUSEAST == 'true'){
+                println("[+] Starting deployment on CVX-YHUSEAST server")
+                sshPublisher(publishers: [sshPublisherDesc(configName: 'Prod-YHUS-EAST', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '''cd /sigmastream/Tools/yhupgrade/
+                sudo ./upgrade-yhbuild.sh''', execTimeout: 600000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '', remoteDirectorySDF: false, removePrefix: '', sourceFiles: 'yellowhammer-upgrade.zip')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+            }
+            else{
+                    println("[-] Deployment on CVX-YHUSEAST server isn't requested.")
+                    }
+            }
+    }, webclient: {
+            stage ('Deploy-on-CVX-YHUSWEST')
+            {
+            if (env.CVX_YHUSWEST == 'true'){
+                println("[+] Starting deployment on CVX-YHUSWEST server")
+                sshPublisher(publishers: [sshPublisherDesc(configName: 'Prod-YHUS-WEST', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '''cd /sigmastream/Tools/yhupgrade/
+                sudo ./upgrade-yhbuild.sh''', execTimeout: 600000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '', remoteDirectorySDF: false, removePrefix: '', sourceFiles: 'yellowhammer-upgrade.zip')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+            }
+            else{
+                    println("[-] Deployment on CVX-YHUSWEST server isn't requested.")
+                    }
+            }
+    }, clibuild: {
+        stage ('Deploy-on-PEMEX-YH') 
+            {
+            if (env.PEMEX_YH == 'true'){
+                println("[+] Starting deployment on PEMEX-YH server")
+                sshPublisher(publishers: [sshPublisherDesc(configName: 'PEMEX-YH', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '''cd /sigmastream/Tools/yhupgrade/
+                sudo ./upgrade-yhbuild.sh''', execTimeout: 300000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '', remoteDirectorySDF: false, removePrefix: '', sourceFiles: 'yellowhammer-upgrade.zip')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+            }
+            else{
+                    println("[-] Deployment on PEMEX-YH server isn't requested.")
+                    }
+            }
+    }
+            
+  stage('email'){
+      emailext attachLog: true, body: '''${SCRIPT, template="yellowhammer-email-template.template"}''', recipientProviders: [brokenBuildSuspects(), requestor()], subject: '$DEFAULT_SUBJECT'     
+  }
+}

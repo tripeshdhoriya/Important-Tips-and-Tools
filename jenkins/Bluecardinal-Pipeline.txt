@@ -1,0 +1,67 @@
+node {
+   stage('SCM checkout') { // for display purposes
+        checkout([$class: 'MercurialSCM', credentialsId: '82fc5739-6477-4548-9446-a3568fa728d5', revision: '$Revision', source: 'http://192.168.1.40:8001/scm/hg/bluecardinal'])
+   }
+    stage('SCM update') { 
+        sh label: '', script: '''cd $WORKSPACE
+        hg update $Revision'''
+   }
+//   stage('collecting-changelogs'){
+//     echo "checking for changes.."
+//       def changeLogSets = currentBuild.changeSets
+//         for (int i = 0; i < changeLogSets.size(); i++) {
+//             def entries = changeLogSets[i].items
+//             for (int j = 0; j < entries.length; j++) {
+//         def entry = entries[j]
+//         String changelogs= "${entry.commitId} by ${entry.author} on ${new Date(entry.timestamp)}: ${entry.msg}" 
+//         def myFile = new File("mySuperFile.txt")
+//         myFile.write(changelogs)
+//         echo "${entry.commitId} by ${entry.author} on ${new Date(entry.timestamp)}: ${entry.msg}" 
+//         def files = new ArrayList(entry.affectedFiles)
+//         for (int k = 0; k < files.size(); k++) {
+//             def file = files[k]
+//             echo "  ${file.editType.name} ${file.path}"
+//                 }
+//             }
+//         }
+//     }
+   
+    stage('project-setup') {
+        echo "Running project-setup.."
+            sh label: '', script: '''cd $WORKSPACE/bluecardinal-core 
+            chmod +x *.sh
+            ./project-setup.sh'''
+        }
+
+    stage ('prod-build') {
+        echo 'server-build'
+        sh label: '', script: '''cd $WORKSPACE/bluecardinal-core  
+        ./prod-build.sh'''
+    }
+    
+   stage('collecting-build-files') {
+       echo "Running build collection script"
+    //   sh label: '', script: '''cd /home/Jenkins-Build-Files/  
+    //   ./bluecardinal-build-collection.sh'''
+    }   
+
+  stage('email'){
+        // emailext body: '''${JELLY_SCRIPT,template="html"}
+        emailext attachLog: true, body: '''${SCRIPT, template="bluecardinal-email-template.template"}''', recipientProviders: [requestor()], subject: '$DEFAULT_SUBJECT'
+        // emailext attachLog: true, body: ''' ${SCRIPT, script="notification-manager.groovy"}
+        //  ${SCRIPT, template="email.html.groovy"}''', recipientProviders: [requestor()], subject: '$DEFAULT_SUBJECT'
+        
+        // $PROJECT_NAME - Build - $BUILD_NUMBER - $BUILD_STATUS
+        
+        // Check console output at $BUILD_URL to view results.''', recipientProviders: [requestor()], subject: '$PROJECT_NAME - Build # $BUILD_NUMBER - $BUILD_STATUS'
+        
+        // emailext body: "${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER} More info at: ${env.BUILD_URL}\n  changesets: ${currentBuild.changeSets} \n Build Duration: ${currentBuild.durationString}",
+        // recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']],
+        // subject: "Jenkins Build ${currentBuild.currentResult}: Job ${env.JOB_NAME}"
+      
+        // emailextrecipients([requestor(), upstreamDevelopers()])
+        // emailext body: '''${JOB_NAME} status is ${BUILD_STATUS}:
+        // Check console output at ${BUILD_URL} to view the results.
+        // ''', subject: 'Job \'${JOB_NAME}\' (${BUILD_NUMBER}) - ${BUILD_STATUS}!', to: 'jay.patel@sigmastream.com'       
+  }
+}

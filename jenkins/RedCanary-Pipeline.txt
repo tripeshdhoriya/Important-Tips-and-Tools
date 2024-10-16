@@ -1,0 +1,60 @@
+node {
+   stage('SCM checkout'){ // for display purposes
+            checkout([$class: 'MercurialSCM', credentialsId: '82fc5739-6477-4548-9446-a3568fa728d5', revision: '$Revision', source: 'http://192.168.1.40:8001/scm/hg/yh-app-monitor']) 
+        }
+  stage('SCM update') { // for display purposes
+    sh label: '', script: '''cd $WORKSPACE
+    hg update $Revision'''
+   }
+   stage('collecting-changelogs'){
+       def changeLogSets = currentBuild.changeSets
+        for (int i = 0; i < changeLogSets.size(); i++) {
+            def entries = changeLogSets[i].items
+            for (int j = 0; j < entries.length; j++) {
+        def entry = entries[j]
+        echo "${entry.commitId} by ${entry.author} on ${new Date(entry.timestamp)}: ${entry.msg}"
+        def files = new ArrayList(entry.affectedFiles)
+        for (int k = 0; k < files.size(); k++) {
+            def file = files[k]
+            echo "  ${file.editType.name} ${file.path}"
+                }
+            }
+        }
+   }
+
+    parallel server: {
+        stage ('RedCanary-Server') 
+        {
+            echo 'rcserver-build'
+            sh label: '', script: 
+            './server-cleanbuild.sh'
+        }
+    }, rcagent: {
+        stage ('RedCanary-Agent') 
+        {
+            echo "rcagent build "
+            sh label: '', script: 
+            './agent-cleanbuild.sh'
+        }
+    }
+   stage('collecting-build-files') {
+       echo "Running build collection script"
+        sh label: '', script: '''cd /home/Jenkins-Build-Files/  
+        ./redcanary-build-collection.sh'''
+   }    
+//   stage('transfering build-files'){
+//       sshPublisher(publishers: [sshPublisherDesc(configName: 'RPM-BUILD-(2.151)', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: 'sh upgrade-yhbuild.sh', execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '/home/centos/jenkins-files/', remoteDirectorySDF: false, removePrefix: '', sourceFiles: '/home/Jenkins-Build-Files/publish-over-ssh/yellowhammer-upgrade.zip')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+//   }
+  stage('email'){
+         emailext attachLog: true, body: '''${SCRIPT, template="RedCanary-email-template.template"}''', recipientProviders: [requestor()], subject: '$DEFAULT_SUBJECT'
+        
+        // emailext body: "${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n More info at: ${env.BUILD_URL}",
+        // recipientProviders: [[$class: 'DevelopersRecipientProvider'], [$class: 'RequesterRecipientProvider']],
+        // subject: "Jenkins Build ${currentBuild.currentResult}: Job ${env.JOB_NAME}"
+        
+        // echo "sending email"
+        // emailext body: '''${JOB_NAME} status is ${BUILD_STATUS}:
+        // Check console output at ${BUILD_URL} to view the results. 
+        // ''', subject: 'Job \'${JOB_NAME}\' (${BUILD_NUMBER}) - ${BUILD_STATUS}!', to: 'jay.patel@sigmastream.com'       
+  }
+}

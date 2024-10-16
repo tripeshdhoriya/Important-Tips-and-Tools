@@ -1,0 +1,68 @@
+1.Creating a Private Key
+
+1.1 sudo apt-get update & sudo apt-get upgrade -y
+
+1.2 Let's create a password-protected, 2048-bit RSA private key (domain.key) with the openssl command: 
+openssl genrsa -des3 -out domain.key 2048
+
+2. Creating a Certificate Signing Request
+
+2.1 Let's create a CSR (domain.csr) from our existing private key: 
+openssl req -key domain.key -new -out domain.csr  (Put your Domain info as per Asking)
+
+3. Creating a Self-Signed Certificate
+
+3.1 Let's create a self-signed certificate (domain.crt) with our existing private key and CSR:
+openssl x509 -signkey domain.key -in domain.csr -req -days 365 -out domain.crt
+
+4. Creating a CA-Signed Certificate With Our Own CA
+
+4.1 Create a Self-Signed Root CA
+Let's create a private key (rootCA.key) and a self-signed root CA certificate (rootCA.crt) from the command line:
+openssl req -x509 -sha256 -days 1825 -newkey rsa:2048 -keyout rootCA.key -out rootCA.crt
+
+5 View Certificates
+we can use the openssl command to view the contents of our certificate in plain text:
+openssl x509 -text -noout -in domain.crt
+
+6.Convert Certificate Formats
+6.1 Convert PEM to PKCS12
+openssl pkcs12 -inkey domain.key -in domain.crt -export -out domain.pfx
+
+7. Convert PKCS12 to JKS Formats(keystore)
+keytool -importkeystore -noprompt -srckeystore domain.pfx -srcstoretype PKCS12 -srcstorepass "SigmaStream#1" -destkeystore yellowhammer.keystore
+
+
+For Refrence  - https://www.baeldung.com/openssl-self-signed-cert#creating-a-private-key
+
+
+
+
+Certificate install without apache and nginx 
+
+Install certbot first 
+sudo snap install core; sudo snap refresh core
+sudo snap install --classic certbot 
+sudo ufw allow 443
+
+Let,sencrypt with domain  
+
+sudo certbot certonly --standalone -d yellowhammer-whitecap.sigmastream.com   
+
+Or  
+
+sudo certbot certonly --standalone --agree-tos --preferred-challenges http -d yellowhammer-whitecap.sigmastream.com 
+
+sudo certbot -n certonly --standalone --agree-tos --preferred-challenges http -d yellowhammer-whitecap.sigmastream.com 
+
+
+Key are generated on: /etc/letsencrypt/live/yellowhammer-whitecap.sigmastream.com 
+
+
+Now create pkcs12   
+
+pkcs12 -export -in fullchain.pem -inkey privkey.pem -certfile cert.pem -name dev.sigmastream.com -out jetty.pkcs12  
+
+Generate JKS (keystore) 
+
+keytool -importkeystore -noprompt -srckeystore jetty.pkcs12 -srcstoretype PKCS12 -srcstorepass "SigmaStream#1" -destkeystore keystore  

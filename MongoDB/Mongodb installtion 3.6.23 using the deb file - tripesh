@@ -1,0 +1,104 @@
+Step 1: Download the MongoDB 3.6 .deb Package
+
+First, download the .deb package for MongoDB 3.6. You can find the package on the MongoDB download archive page. Use the appropriate link for your system's architecture.
+
+For example:
+
+	wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1604-3.6.23.tgz
+
+Step 2: Extract the Package
+	Extract the downloaded tarball:
+
+	tar -zxvf mongodb-linux-x86_64-ubuntu1604-3.6.23.tgz
+
+Step 3: Move the Files to the Appropriate Directory
+	Create the directory where MongoDB will reside and move the files there:
+
+	sudo mkdir -p /usr/local/mongodb
+	sudo mv mongodb-linux-x86_64-ubuntu1604-3.6.23/* /usr/local/mongodb
+	
+Step 4: Set Up the MongoDB Environment
+
+	Create symbolic links for the MongoDB binaries:
+
+	sudo ln -s /usr/local/mongodb/bin/mongod /usr/bin/mongod
+	sudo ln -s /usr/local/mongodb/bin/mongo /usr/bin/mongo
+	
+Step 5: Create Data and Log Directories
+
+Create the directories for MongoDB data and logs:
+
+
+	sudo mkdir -p /var/lib/mongodb
+	sudo mkdir -p /var/log/mongodb
+	
+Set the appropriate permissions:
+
+	sudo chown `id -u` /var/lib/mongodb
+	sudo chown `id -u` /var/log/mongodb
+	
+Step 6: Create a MongoDB Configuration File
+
+Create a configuration file for MongoDB:
+
+	sudo nano /etc/mongod.conf
+	
+Add the following content to the file:
+
+		systemLog:
+		  destination: file
+		  path: "/var/log/mongodb/mongod.log"
+		  logAppend: true
+		storage:
+		  dbPath: "/var/lib/mongodb"
+		net:
+		  bindIp: 127.0.0.1
+		  
+Step 7: Create a Systemd Service File
+
+Create a systemd service file to manage MongoDB:
+
+	sudo nano /etc/systemd/system/mongod.service
+	
+Add the following content:
+
+		ini
+		Copy code
+		[Unit]
+		Description=High-performance, schema-free document-oriented database
+		After=network.target
+
+		[Service]
+		User=mongodb
+		ExecStart=/usr/local/mongodb/bin/mongod --config /etc/mongod.conf
+		ExecReload=/bin/kill -HUP $MAINPID
+		Restart=on-failure
+
+		[Install]
+		WantedBy=multi-user.target
+		Step 8: Start and Enable MongoDB Service
+		Reload the systemd daemon to apply the changes:
+
+
+	sudo systemctl daemon-reload
+	
+Start the MongoDB service:
+
+
+	sudo systemctl start mongod
+
+Enable the service to start on boot:
+
+
+	sudo systemctl enable mongod
+	
+Step 9: Verify the Installation
+
+Check the status of the MongoDB service:
+
+
+	sudo systemctl status mongod
+	
+You can also connect to the MongoDB shell to verify everything is working:
+
+	mongo

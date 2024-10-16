@@ -1,0 +1,107 @@
+#!/usr/bin/env groovy
+def javaAgent = 'build && java'
+def machineName = "Jenkins-1.108"
+pipeline {
+    agent any
+    environment {
+        BRANCH="${REVISION}"
+        SCM_URL="http://192.168.1.40:8001/scm/hg/yhprod"
+    }
+    stages {
+        stage('Cleaning Workspace') {
+            steps {
+                script {
+                    if (env.CLEANWS == 'True') {
+                        print('[!] Cleaning Workspace as requested.')
+                        cleanWs(cleanWhenNotBuilt: false,
+                        deleteDirs: true,
+                        disableDeferredWipeout: true,
+                        notFailBuild: true,
+                        patterns: [[pattern: '.hgignore', type: 'INCLUDE'],
+                        [pattern: '.propsfile', type: 'EXCLUDE']])
+                    cleanWs()
+                    } else {
+                        sh "echo 'No requested as Cleaning Workspace!'"
+                    }
+                }
+            }
+        }
+        stage('SCM repo checkout') {
+            steps {
+                checkout([$class: 'MercurialSCM', credentialsId: 'JEN_SCM_USER', revision: "${BRANCH}", source: "${SCM_URL}"])
+                withCredentials([usernamePassword(credentialsId: 'JEN_SCM_USER', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                    sh label: '', script: '''
+                    cd "$WORKSPACE"
+                    hg pull "http://$USER:$PASS@192.168.1.40:8001/scm/hg/yhprod"
+                    hg update "${BRANCH}"
+                    '''
+                }
+            }
+        }
+        stage('collecting-changelogs') {
+            steps {
+                script {
+                    def changeLogSets = currentBuild.changeSets
+                    for (int i = 0; i < changeLogSets.size(); i++) {
+                        def entries = changeLogSets[i].items
+                        for (int j = 0; j < entries.length; j++) {
+                        def entry = entries[j]
+                        echo "${entry.commitId} by ${entry.author} on ${new Date(entry.timestamp)}: ${entry.msg}"
+                        def files = new ArrayList(entry.affectedFiles)
+                        for (int k = 0; k < files.size(); k++) {
+                            def file = files[k]
+                            echo "  ${file.editType.name} ${file.path}"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage('clean-build') {
+            steps {
+                script {
+                    echo "clean-build"
+                    sh label: '', script: '''cd $WORKSPACE
+                    ./cleanbuild.sh'''
+                }
+            }
+        }
+        stage ('YellowHammer-Server') {
+            steps {
+                script {
+                    echo 'server-build'
+                    sh label: '', script: 
+                    './prod-build-server.sh'
+                }
+            }
+        }
+        stage ('YellowHammer-Webclient') {
+            steps {
+                script {
+                    echo "webclient build "
+                    sh label: '', script: 
+                    './jar-build-webclient.sh'
+                }
+            }
+        }
+        stage ('CLI') {
+            steps {
+                script {
+                    echo "CLI build "
+                    sh label: '', script: '''cd ${WORKSPACE}/yellowhammer-cli-adaptor/
+                    mvn install'''
+                }
+            }
+        }
+    }
+    post {
+        always {
+            echo 'One way or another, I have finished'
+            // deleteDir() /* clean up our workspace */
+        }
+        success {echo 'I succeeded!'}
+        unstable {echo 'I am unstable :/'}
+        failure {echo 'I failed :('}
+        changed {echo 'Things were different before...'}
+    }
+}

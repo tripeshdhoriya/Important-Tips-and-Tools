@@ -1,0 +1,101 @@
+node {
+    parallel rpmbuild: {
+        stage ('rpmbuild') {
+            if (env.CREATERPM == 'true') {
+                println("[+] Starting RPMBUILD process as requested")
+                build 'RPMBUILD'
+            }
+            else {
+                println("[-] RPMBUILD not requested.")
+            }
+        }
+    }
+    Deployment108: {
+        stage ('Deploy-on-108') {
+            if (env.DEPLOY108 == 'true') {
+                println("[+] Starting deployment on 108 server")
+                sh label: '', script: '''cd /home/Jenkins-Build-Files/publish-over-ssh  
+                ./upgrade-yhbuild.sh'''
+            }
+            else {
+                println("[-] Deployment on 108-server isn't requested.")
+            }
+        }
+    }
+    EC2Prod: {
+        stage ('Deploy-on-EC2Prod(yh.ss.com)') {
+            if (env.EC2Prod == 'true') {
+                println("[+] Starting deployment on Ec2Prod(yellowhammer.sigmastream.com)")
+                sshPublisher(publishers: [sshPublisherDesc(configName: 'EC2-Prod', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '''cd /apps/upgrade-files/
+                sudo sh upgrade-yhbuild.sh''', execTimeout: 300000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '', remoteDirectorySDF: false, removePrefix: '', sourceFiles: 'yellowhammer-upgrade.zip')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+            }
+            else{
+                println("[-] Deployment on EC2-Prod server isn't requested.")
+            }
+        }
+    }
+    QA131: {
+        stage ('Deploy-on-QA131(1.131)') {
+            if (env.QA131 == 'true') {
+                println("[+] Starting deployment on 131(QA-131)")
+                sshPublisher(publishers: [sshPublisherDesc(configName: 'QA-131', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '''cd /apps/upgrade-files/
+                sudo sh upgrade-yhbuild.sh''', execTimeout: 300000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '', remoteDirectorySDF: false, removePrefix: '', sourceFiles: 'yellowhammer-upgrade.zip')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+            }
+            else{
+                println("[-] Deployment on QA-131 server isn't requested.")
+            }
+        }
+    }
+    AZURE105: {
+        stage ('Deploy-on-YH-AZURE(2.105)') {
+            if (env.AZURE105 == 'true') {
+                println("[+] Starting deployment on YH-AZURE(2.105)")
+                sshPublisher(publishers: [sshPublisherDesc(configName: 'QA-2.145', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '''cd /apps/upgrade-files/
+                sudo sh upgrade-yhbuild.sh''', execTimeout: 300000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '', remoteDirectorySDF: false, removePrefix: '', sourceFiles: 'yellowhammer-upgrade.zip')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+            }
+            else{
+                println("[-] Deployment on YH-AZURE(2.105) server isn't requested.")
+            }
+        }
+    }
+    RPMBUILD166: {
+        stage ('Deploy-on-RPMBUILD-(2.166)') {
+            if (env.RPMBUILD166 == 'true') {
+                println("[+] Starting deployment on YH-AZURE(2.166)")
+                sshPublisher(publishers: [sshPublisherDesc(configName: 'RPMBUILD-2.166', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '''cd /apps/upgrade-files/
+                sudo sh upgrade-yhbuild.sh''', execTimeout: 300000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '', remoteDirectorySDF: false, removePrefix: '', sourceFiles: 'yellowhammer-upgrade.zip')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+            }
+            else{
+                println("[-] Deployment on YH-AZURE(2.166) server isn't requested.")
+            }
+        }
+    }
+    YHEXTE116: {
+        stage ('Deploy-on-YH-EXTERNAL-(2.116)') {
+            if (env.YHEXTE116 == 'true') {
+                println("[+] Starting deployment on YH-AZURE(2.116)")
+                sshPublisher(publishers: [sshPublisherDesc(configName: 'YH-EXTERNAL-116', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '''cd /apps/upgrade-files/
+                sudo sh upgrade-yhbuild.sh''', execTimeout: 300000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '', remoteDirectorySDF: false, removePrefix: '', sourceFiles: 'yellowhammer-upgrade.zip')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+            }
+            else{
+                println("[-] Deployment on YH-EXTERNAL(2.116) server isn't requested.")
+            }
+        }
+    }
+    YH179: {
+        stage ('Deploy-on-YELLOWHAMMER-(2.179)') {
+            if (env.YH179 == 'true') {
+                println("[+] Starting deployment on YELLOWHAMMER-(2.179)")
+                sshPublisher(publishers: [sshPublisherDesc(configName: 'YELLOWHAMMER-179', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '''cd /apps/upgrade-files/
+                sudo sh upgrade-yhbuild.sh''', execTimeout: 300000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '', remoteDirectorySDF: false, removePrefix: '', sourceFiles: 'yellowhammer-upgrade.zip')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+            }
+            else{
+                println("[-] Deployment on YELLOWHAMMER-(2.179) server isn't requested.")
+            }
+        }
+    } 
+    // emailextrecipients([brokenBuildSuspects(), requestor()])        
+    stage('email'){
+      emailext attachLog: true, body: '''${SCRIPT, template="yellowhammer-email-template.template"}''', recipientProviders: [brokenBuildSuspects(), requestor()], subject: '$DEFAULT_SUBJECT'     
+    }
+}

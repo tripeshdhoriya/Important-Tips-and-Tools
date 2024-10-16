@@ -1,0 +1,26 @@
+daily
+
+# keep 3 weeks worth of backlogs
+rotate 3
+
+# create new (empty) log files after rotating old ones
+copytruncate
+
+# uncomment this if you want your log files compressed
+compress
+
+/sigmastream/yellowhammer/yellowhammer-server/logs/*.log {
+    daily
+    su sigmastream sigmastream
+    create 0644 sigmastream sigmastream
+    notifempty
+    size 50000k
+}
+
+/sigmastream/yellowhammer/yellowhammer-server/yellowhammer-base/logs/*.log {
+        su sigmastream sigmastream
+        daily
+        size 50000k
+        create 644 sigmastream sigmastream
+        notifempty
+}
