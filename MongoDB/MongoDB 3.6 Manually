@@ -1,0 +1,103 @@
+		### How To Install MongoDB 3.6 On Ubuntu 22 Manually ###
+		
+Since mongodb 3.6 is not supported on ubuntu servers after version ubuntu 18, we have to install and configure mongodb config and service files manually
+
+1. Download deb package of mongodb org 3.6 from its offical site for ubuntu 18 (since it is not available for ubutnu 22): https://www.mongodb.com/try/download/community
+
+2. Send this downloaded deb package of mongodb to your server where you want to install mongodb 3.6 via Winscp
+
+3. Install the MongoDB shell using the mongodb-org-shell package:
+sudo dpkg -i mongodb-org-shell_3.6.23_amd64.deb
+
+4. Now you might run into an error reagarding dependencies of libssl1.1 package, hence download libssl1 package manually from online:
+https://debian.pkgs.org/10/debian-main-amd64/libssl1.1_1.1.1n-0+deb10u3_amd64.deb.html
+	Then send that libssl1 deb package to your server with mongodb package
+	
+5. 			sudo apt update
+			sudo dpkg -i libssl1.1_1.1.1n-0+deb10u3_amd64.deb
+			
+6. After installing libssl1.1, try installing mongodb-org-shell again using dpkg:
+sudo dpkg -i mongodb-org-shell_3.6.23_amd64.deb
+
+7. Create Configuration Files:
+MongoDB uses a configuration file. You need to create one manually. Typically, this file is located at /etc/mongod.conf. You can create this file using any text editor. For example:
+sudo vim /etc/mongod.conf
+								Here enter these details: 
+storage:
+  dbPath: /home/sigmastream/Mongodb/data
+  journal:
+    enabled: true
+systemLog:
+  destination: file
+  path: /home/sigmastream/Mongodb/log/mongod.log
+  logAppend: true
+net:
+  port: 27017
+  bindIp: 127.0.0.1	
+  
+8. Create the mongodb User and Group:
+sudo groupadd mongodb
+sudo useradd -r -g mongodb mongodb
+
+9. sudo mkdir -p /var/lib/mongodb
+sudo mkdir -p /var/log/mongodb
+sudo chown -R mongodb:mongodb /var/lib/mongodb
+sudo chown -R mongodb:mongodb /var/log/mongodb
+
+10. Download MongoDB Binaries:
+Go to the official MongoDB website: https://www.mongodb.com/try/download/community
+Select the appropriate version of MongoDB for your operating system. Since you're using Ubuntu, choose the appropriate Linux version.
+Download the .tgz or .tar.gz archive containing the MongoDB binaries.
+
+11. Extract MongoDB Binaries:
+Open a terminal window.
+Navigate to the directory where the downloaded MongoDB archive is located.
+Use the tar command to extract the contents of the archive. Replace <archive_name> with the name of the downloaded archive:
+tar -zxvf <archive_name>.tar.gz
+
+12. Move MongoDB Binaries to Desired Location (Optional):
+You can move the extracted MongoDB directory to a desired location on your system. For example, you can move it to /opt directory:
+sudo mv <extracted_directory> /opt/mongodb
+
+13. Ensure Binaries are Executable:
+Navigate to the directory containing the MongoDB binaries.
+Ensure that the binaries are executable by running the following command:
+sudo chmod +x bin/*
+
+14. export PATH=/path/to/mongodb/bin:$PATH
+
+15. export PATH=/path/to/mongodb/bin:$PATH
+
+16. sudo /opt/mongodb/mongodb-linux-x86_64-ubuntu1804-3.6.23/bin/mongod --config /etc/mongod.conf --fork
+		Donnot forget to add mongodb/ after /bin path
+		
+17. Create the Service File:
+Use your preferred text editor to create the service file. For example:
+sudo vim /etc/systemd/system/mongodb.service
+												Here, add these params for service file
+[Unit]
+Description=MongoDB Database Server
+Documentation=https://docs.mongodb.com/manual
+After=network.target
+
+[Service]
+User=mongodb
+Group=mongodb
+ExecStart=/opt/mongodb/mongodb-linux-x86_64-ubuntu1804-3.6.23/bin/mongod --config /etc/mongod.conf
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+PIDFile=/var/run/mongodb/mongod.pid
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=mongodb
+
+[Install]
+WantedBy=multi-user.target
+
+18. sudo systemctl daemon-reload
+sudo systemctl start mongodb
+sudo systemctl enable mongodb
+sudo systemctl status mongodb
+
+19. Now run    (mongo)   if you see service active. If service not running, check for logs and troubleshoot errors.   
+

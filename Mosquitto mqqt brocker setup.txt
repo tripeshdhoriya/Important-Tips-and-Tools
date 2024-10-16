@@ -1,0 +1,164 @@
+Step 1: Update Package List
+Update the package list to ensure you have the latest information about available packages:
+	sudo apt update
+	
+Step 2: Install Mosquitto
+Install the Mosquitto MQTT broker:
+	sudo apt install mosquitto mosquitto-clients
+	
+Step 3: Enable and Start Mosquitto Service
+Enable and start the Mosquitto service:
+	sudo systemctl enable mosquitto
+	sudo systemctl start mosquitto
+	
+Step 4: Verify Mosquitto Installation
+Check the status of the Mosquitto service to verify that it's running:
+	sudo systemctl status mosquitto
+	
+Step 5: Create Password File
+Create a password file for Mosquitto authentication:
+	sudo mosquitto_passwd -c /etc/mosquitto/passwd test
+You'll be prompted to enter a password for the "test" user.
+
+Step 6: Add Another User to Password File
+Add another user, "ramon.rodriguez", to the password file:
+	sudo mosquitto_passwd -b /etc/mosquitto/passwd ramon.rodriguez Test@123
+	
+Step 7: Update Mosquitto Configuration
+Edit the Mosquitto configuration file to specify the password file:
+	sudo nano /etc/mosquitto/mosquitto.conf
+	
+Add or modify the password_file directive:
+
+	password_file /etc/mosquitto/passwd
+	Save and close the file.
+
+Step 8: Restart Mosquitto
+Restart the Mosquitto service to apply the changes:
+	sudo systemctl restart mosquitto
+	
+Step 9: Test Connection
+Test the Mosquitto broker by subscribing to a topic using the "ramon.rodriguez" and "test" users:
+	mosquitto_sub -h localhost -t test -u "ramon.rodriguez" -P "Test@123!"
+
+	mosquitto_sub -h localhost -t test -u "test" -P "test"
+	
+If both commands work without any authorization errors, then Mosquitto is correctly set up with multiple users.
+
+Step 10: Optional - Test Publishing
+You can also test publishing a message using mosquitto_pub:
+
+mosquitto_pub -h localhost -t test -m "Hello, Mosquitto!" -u "ramon.rodriguez" -P "Test@123!"
+
+Step 11: Install SSL 
+To install an SSL certificate using Let's Encrypt, we need to download the Certbot tool. We will use the Snapd package installer for that.
+
+Install Snap installer.
+	sudo apt install snapd
+	
+Ensure that your version of Snapd is up to date.
+
+	 sudo snap install core 
+ 	 sudo snap refresh core
+	 
+Install Certbot
+	 sudo snap install --classic certbot
+	 
+Use the following command to ensure that the Certbot command runs by creating a symbolic link to the /usr/bin directory.
+
+	  sudo ln -s /snap/bin/certbot /usr/bin/certbot
+	 
+Step 12 : Generate an SSL certificate.
+
+	  sudo certbot certonly --standalone --agree-tos --no-eff-email --staple-ocsp --preferred-challenges http -m name@example.com -d mqtt.example.com
+	  
+The above command will download a certificate to the /etc/letsencrypt/live/mqtt.example.com directory on your server.
+
+Steps 12 : Generate a Diffie-Hellman group certificate.
+
+	  sudo openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048
+	  
+Create a challenge web root directory for Let's Encrypt auto-renewal.
+
+	  sudo mkdir -p /var/lib/letsencrypt
+	  
+Create a Cron Job to renew the SSL. It will run every day to check the certificate and renew if needed. For that, first, create the file /etc/cron.daily/certbot-renew and open it for editing.
+
+	  sudo nano /etc/cron.daily/certbot-renew
+	  
+Paste the following code.
+
+		#!/bin/sh
+		certbot renew --cert-name mqtt.example.com --webroot -w /var/lib/letsencrypt/
+		
+		Save the file by pressing Ctrl + X and entering Y when prompted.
+
+Change the permissions on the task file to make it executable.
+
+		sudo chmod +x /etc/cron.daily/certbot-renew
+		
+Steps 13:Configure MQTT SSL
+	
+	Now that we have the SSL certificates ready, we need to provide Mosquitto access to them. For this, we need to copy the certificates to a location from where Mosquitto can access them.
+
+	sudo cp /etc/letsencrypt/live/mqtt.example.com/fullchain.pem /etc/mosquitto/certs/server.pem
+	sudo cp /etc/letsencrypt/live/mqtt.example.com/privkey.pem /etc/mosquitto/certs/server.key
+	
+Change the ownership of the /etc/mosquitto/certs directory to the mosquitto user created during the installation.
+
+	sudo chown mosquitto: /etc/mosquitto/certs
+	
+The next step to enable the SSL encryption for Mosquitto is to specify the location of the SSL certificates. Open the configuration file for editing.
+
+	sudo nano /etc/mosquitto/mosquitto.conf
+	
+Paste the following code at the end of the file.
+
+	. . .
+	listener 8883
+	certfile /etc/mosquitto/certs/server.pem
+	cafile  /etc/ssl/certs/ISRG_Root_X1.pem
+	keyfile /etc/mosquitto/certs/server.key
+	dhparamfile /etc/ssl/certs/dhparam.pem
+	
+	Save the file by pressing Ctrl + X and entering Y when prompted. Be sure to leave a trailing newline at the end of the file.
+
+The listener 8883 portion sets up the encrypted listener. It is the standard port for MQTT + SSL, referred to as MQTTS. The next four lines specify the location of the SSL files.
+
+Restart Mosquitto to update the settings.
+
+	sudo systemctl restart mosquitto
+
+
+Next, we need to test the functionality using the mosquitto_pub command.
+
+	 mosquitto_pub -h mqtt.example.com -t "home/lights/kitchen" -m "hello" -p 8883 --capath /etc/ssl/certs/ -u username -P YOUR_PASSWORD
+	 
+	mosquitto_sub -h mqtt.example.com -t "home/lights/kitchen" -m "hello" -p 8883 --capath /etc/ssl/certs/ -u username -P YOUR_PASSWORD
+
+
+
+Troubleshooting Guide:
+
+For Published data using MQTT:
+mosquitto_pub -h msgbroker.sigmastream.com -t "RCI/HSD01/SS001" -m "hello" -p 8883 --capath /etc/ssl/certs/ -u ramon.rodriguez -P R0@m0n@456!
+
+For Subscribe data using MQTT:
+mosquitto_sub -h msgbroker.sigmastream.com -t "RCI/HSD01/SS001" -p 8883 --capath /etc/ssl/certs/ -u ramon.rodriguez -P R0@m0n@456!
+
+
+for updating SSL certificate on mosquitoo brocker
+
+1. Renew Certificate on letencrypt PATH
+2. copy sudo cp /etc/letsencrypt/live/msgbroker.sigmastream.com/privkey.pem /etc/mosquitto/certs/server.key
+3. Cop sudo cp /etc/letsencrypt/live/msgbroker.sigmastream.com/fullchain.pem /etc/mosquitto/certs/server.pem
+
+check ownership and permission
+
+sudo chown mosquitto:mosquitto /etc/mosquitto/certs/*
+sudo chmod 600 /etc/mosquitto/certs/*
+
+Restart Mostquto brocker and YH server
+
+For log troubleshoting - sudo tail -f /var/log/mosquitto/mosquitto.log 
+

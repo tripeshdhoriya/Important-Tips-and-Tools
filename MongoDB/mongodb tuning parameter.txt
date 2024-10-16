@@ -1,0 +1,37 @@
+1.TO set ulimite from default to 64000
+	ulimit -n 64000
+
+
+2.Ensure the settings in /etc/security/limits.conf and related PAM configuration files are correct:
+
+/etc/security/limits.conf
+
+
+*       soft    nofile  64000
+*       hard    nofile  64000
+
+3. Edit /etc/pam.d/common-session and /etc/pam.d/common-session-noninteractive
+Add the following line to both files:
+
+sudo nano /etc/pam.d/common-session
+sudo nano /etc/pam.d/common-session-noninteractive
+
+Add this line to both files:
+
+ session required pam_limits.so
+ 
+4. Add LimitNOFILE in the mongod.service file
+
+[Service]
+LimitNOFILE=64000
+
+
+If in case ulimit is not overide to default value add ulimit -n 64000 in the 
+vi /etc/profile
+vi ~/.bashrc
+
+add ulimit -n 64000 value in end of both file and reload the both file 
+
+For reloading file used below command:
+source /etc/profile
+source ~/.bashrc

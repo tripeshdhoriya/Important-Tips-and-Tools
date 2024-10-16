@@ -1,0 +1,38 @@
+Create an SSL Certificate with Certbot
+
+1. Install snapd:
+	sudo apt install snapd
+	
+2. Ensure you have the latest snapd version installed:
+	sudo snap install core; sudo snap refresh core
+3. Install Certbot with snapd:
+	sudo snap install --classic certbot
+4. Create a symlink to ensure Certbot runs:
+	sudo ln -s /snap/bin/certbot /usr/bin/certbot
+	
+
+5. Create SSL certs for all domains and configure redirects in the web server:
+	sudo certbot --apache
+	sudo certbot --nginx
+
+6. Create SSL certs for a specified domain (recommended if you’re using your system hostname):
+	sudo certbot --apache -d example.com -d www.example.com
+    ex -sudo certbot --nginx -d rockpigeon.gleaminglife.in
+
+7. Only install SSL certs:
+	sudo certbot certonly --apache
+	sudo certbot certonly --nginx
+8. Enter an email address for renewal and security notices.
+9. Agree to the terms of service.
+10.Specify whether to receive emails from EFF.
+If prompted, choose whether to redirect HTTP traffic to HTTPS – 1 (no redirect, no further changes to the server) or 2 (redirect all HTTP requests to HTTPS).
+
+you will get you certificate on the PATH:/etc/letsencrypt/live/
+
+
+Create pkcs12 and jks keystore as like below mention command
+
+pkcs12 - 	openssl  pkcs12 -export -in fullchain.pem -inkey privkey.pem -certfile cert.pem -name rockpigeon.gleaminglife.in -out jetty.pkcs12
+	
+	
+jks (keystore) -     keytool -importkeystore -noprompt -srckeystore jetty.pkcs12 -srcstoretype PKCS12 -srcstorepass "myPassword" -destkeystore keystore

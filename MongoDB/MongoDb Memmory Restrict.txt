@@ -1,0 +1,64 @@
+Yes, you can restrict MongoDB memory usage on a Linux machine by configuring the system's memory limits and adjusting MongoDB settings. Here are several approaches you can use:
+
+#########################################################################
+1.Using cgroups:
+cgroups (control groups) is a Linux kernel feature that allows you to limit, account for, and isolate the resource usage (CPU, memory, disk I/O, etc.) of a collection of processes.
+
+Install cgroups:
+
+
+sudo apt-get install cgroup-tools
+
+	Create a cgroup for MongoDB:
+
+
+	sudo cgcreate -g memory:/mongodb
+	Set memory limit (e.g., to 2GB):
+
+
+	sudo cgset -r memory.limit_in_bytes=2G mongodb
+	
+Start MongoDB within the cgroup:
+
+	sudo cgexec -g memory:mongodb mongod --config /etc/mongod.conf
+	
+############################################################################
+2.Using ulimit:
+
+ulimit is a shell command to control the resources available to the shell and to processes started by it, on systems that allow such control.
+
+Set ulimit for the MongoDB process:
+Edit the MongoDB service file, typically located at /lib/systemd/system/mongod.service or /etc/systemd/system/multi-user.target.wants/mongod.service.
+
+Add the following line to the [Service] section:
+
+	ini
+	Copy code
+	LimitMEMLOCK=2G
+Reload the systemd manager configuration:
+
+
+	sudo systemctl daemon-reload
+	
+Restart MongoDB:
+
+	sudo systemctl restart mongod
+#################################################################################
+	
+3.MongoDB Configuration:
+
+Adjust the storage.wiredTiger.engineConfig.cacheSizeGB setting in the MongoDB configuration file to limit the amount of memory used by the WiredTiger storage engine's cache.
+
+Edit the MongoDB configuration file (usually located at /etc/mongod.conf):
+
+yaml
+Copy code
+storage:
+  wiredTiger:
+    engineConfig:
+      cacheSizeGB: 2
+Restart MongoDB:
+
+
+	sudo systemctl restart mongod
+#####################################################################################

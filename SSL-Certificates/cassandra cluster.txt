@@ -1,0 +1,124 @@
+Step 1 - Install jre-11 and jdk-11 on the all three nodes (https://www.digitalocean.com/community/tutorials/how-to-install-java-with-apt-on-ubuntu-22-04)
+#####################################
+Step 2 - Install Cassandra 4x on the all three node (https://cassandra.apache.org/doc/stable/cassandra/getting_started/installing.html)
+
+#####################################
+
+Step 3 - Lest configure clusert on the all three nodes
+Configuring the Firewall to Allow Cassandra Traffic
+#####################################
+Node-1
+sudo ufw allow from 192.168.2.51 to 192.168.2.57 proto tcp port 7000,9042
+sudo ufw allow from 192.168.2.58 to 192.168.2.57 proto tcp port 7000,9042
+#####################################
+Node-2
+sudo ufw allow from 192.168.2.57 to 192.168.2.51 proto tcp port 7000,9042
+sudo ufw allow from 192.168.2.58 to 192.168.2.51 proto tcp port 7000,9042
+#####################################
+Node-3
+sudo ufw allow from 192.168.2.57 to 192.168.2.58 proto tcp port 7000,9042
+sudo ufw allow from 192.168.2.51 to 192.168.2.58 proto tcp port 7000,9042
+
+#####################################
+
+Steps 4 -  Deleting Cassandra’s Pre-Installed Data
+
+sudo systemctl stop cassandra  (First Stop cassandra service)
+
+sudo rm -rf /var/lib/cassandra/* (Remove current data directory)
+
+
+Steps 5 - Configuring the Cassandra Cluster
+
+sudo vi /etc/cassandra/cassandra.yaml
+
+#####################################
+For Node 1
+...
+cluster_name: 'SigmaStream'
+...
+seed_provider:
+  - class_name: org.apache.cassandra.locator.SimpleSeedProvider
+    parameters:
+         - seeds: "192.168.2.57:7000"
+		 - seeds: "192.168.2.51:7000"
+		 - seeds: "192.168.2.58:7000"
+...
+listen_address: "192.168.2.57"
+...
+rpc_address: "192.168.2.57"
+...
+endpoint_snitch: GossipingPropertyFileSnitch
+...
+auto_bootstrap: false #If database is existed the set value auto_bootstrap: true
+
+#####################################
+For Node 2
+...
+cluster_name: 'SigmaStream'
+...
+seed_provider:
+  - class_name: org.apache.cassandra.locator.SimpleSeedProvider
+    parameters:
+         - seeds: "192.168.2.57:7000"
+		 - seeds: "192.168.2.51:7000"
+		 - seeds: "192.168.2.58:7000"
+...
+listen_address: "192.168.2.51"
+...
+rpc_address: "192.168.2.51"
+...
+endpoint_snitch: GossipingPropertyFileSnitch
+...
+auto_bootstrap: false  #If database is existed the set value auto_bootstrap: true
+#####################################
+For Node 3
+...
+cluster_name: 'SigmaStream'
+...
+seed_provider:
+  - class_name: org.apache.cassandra.locator.SimpleSeedProvider
+    parameters:
+         - seeds: "192.168.2.57:7000"
+		 - seeds: "192.168.2.51:7000"
+		 - seeds: "192.168.2.58:7000"
+...
+listen_address: "192.168.2.58"
+...
+rpc_address: "192.168.2.58"
+...
+endpoint_snitch: GossipingPropertyFileSnitch
+...
+auto_bootstrap: false   #If database is existed the set value auto_bootstrap: true
+#####################################
+
+Steps 6 - Connecting to Your Multi-Node Cassandra Cluster
+
+sudo systemctl start cassandra  (Start Cassandra)
+sudo systemctl status cassandra (Check Status of cassandra)
+
+sudo nodetool status (Check status of node cluser are correclty configured)
+
+Output: 
+sigmastream@timescale-001:~$ sudo nodetool status
+Datacenter: dc1
+===============
+Status=Up/Down
+|/ State=Normal/Leaving/Joining/Moving
+--  Address       Load        Tokens  Owns (effective)  Host ID                               Rack
+UN  192.168.2.57  132.62 KiB  16      64.7%             8f46b13d-e7c3-4c27-a383-f8b5180d6796  rack1
+UN  192.168.2.51  104.31 KiB  16      59.3%             8e0ab04d-1cc1-4920-aac4-807ee89abca8  rack1
+UN  192.168.2.58  104.31 KiB  16      76.0%             01d7d364-8506-4b78-928c-093b2db8fb39  rack1
+
+#####################################
+cqlsh server-internal-ip-address 9042  (connect anyone node is it worked?)
+
+cqlsh > describe cluser 
+
+output: Cluster: SigmaStream
+Partitioner: Murmur3Partitioner
+Snitch: DynamicEndpointSnitch
+
+
+
+link- https://www.digitalocean.com/community/tutorials/how-to-install-cassandra-and-run-a-multi-node-cluster-on-ubuntu-22-04#step-3-mdash-configuring-the-cassandra-cluster

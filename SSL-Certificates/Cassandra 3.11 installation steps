@@ -1,0 +1,86 @@
+Cassandra 3.11 Installation Guide
+
+1.Download Apache Cassandra:
+Go to the Apache Cassandra download page and get the link for the 3.11 version from Apacher Cassandra offial site.
+
+you will get this file  "apache-cassandra-3.11.10-bin.tar.gz"
+
+2. Extract the Tarball:
+
+	tar -xvzf apache-cassandra-3.11.10-bin.tar.gz
+	
+3. Move Cassandra to a System Directory:
+	
+	sudo mv apache-cassandra-3.11.10 /usr/local/cassandra
+	
+4. Update Permissions:
+
+	sudo chown -R $USER:$GROUP /usr/local/cassandra
+	
+5. Start Cassandra:
+
+	cd /usr/local/cassandra/bin
+	./cassandra
+	
+	test another teminal go on the PATH- cd /usr/local/cassandra/bin
+	run cqlsh
+	
+	for kill service  - pkill -f CassandraDaemon
+
+	
+6. create service for Cassandra
+
+	sudo vi /etc/systemd/system/cassandra.service
+	
+7. Add the Following Configuration:
+   Paste the following content into the file:
+   
+   [Unit]
+Description=Apache Cassandra Database
+After=network.target
+
+[Service]
+User=<your-username>
+Group=<your-group>
+ExecStart=/usr/local/cassandra/bin/cassandra -f
+Restart=on-failure
+RestartSec=20
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
+
+
+Replace <your-username> and <your-group> with your Linux username and group as acconding yu need.
+
+8. Reload systemd and Enable the Service:
+
+	sudo systemctl daemon-reload
+	sudo systemctl enable cassandra
+	sudo systemctl start cassandra
+	sudo systemctl status cassandra
+
+9. Add Cassandra bin to PATH:
+
+	export PATH=$PATH:/usr/local/cassandra/bin
+	
+	Then, reload your shell configuration:
+	
+	source ~/.bashrc  # or source ~/.bash_profile
+
+10. Verify cqlsh Installation:
+
+	Verify cqlsh
+	
+11. If you still encounter issues, you can install cqlsh using the suggested method
+
+sudo apt update
+sudo apt install snapd
+sudo systemctl enable --now snapd.socket
+
+
+
+	sudo snap install cqlsh
+
+
+nodetool status

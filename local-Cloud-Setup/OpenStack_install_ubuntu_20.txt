@@ -1,0 +1,63 @@
+OPENSTACK installation on Ubuntu 20.
+===================================
+NOTE: below steps are working on only Ubuntu 20 OS.
+---------------------------------------------------
+
+	# INDEX UPDATE
+sudo apt-get update && sudo apt-get upgrade
+
+	# STACK USER ADD
+sudo useradd -s /bin/bash -d /opt/stack/ -m stack
+
+	# ADD INTO SUDOERS
+echo "stack ALL=(ALL) NOPASSWD:ALL " | sudo tee /etc/sudoers.d/stack
+
+	# LOGIN STACK USER
+sudo su - stack
+
+	# CLONE DEVSTACK
+git clone https://opendev.org/openstack/devstack
+
+
+cd devstack
+
+	# MAKE CREDENTIAL FILE
+vim local.conf
+--------------------------------------------------------------
+[[local|localrc]]
+
+# Password for KeyStone, Database, RabbitMQ and Service
+ADMIN_PASSWORD=StrongAdminpassword
+DATABASE_PASSWORD=$ADMIN_PASSWORD
+RABBIT_PASSWORD=$ADMIN_PASSWORD
+SERVICE_PASSWORD=$ADMIN_PASSWORD
+
+# Host IP - get your Server/VM IP address from ip addr command
+HOST_IP=192.168.2.27
+--------------------------------------------------------------
+
+	# MAKE LOG FILE
+sudo mkdir -p /opt/stack/logs/
+
+	# RUN stack.sh FILE FOR INSTALLATION.
+# This script will take time as per Ineternet speed. [Approx 1.5 to 2.5 hours]
+FORCE=yes ./stack.sh
+
+
+URL 
+http://192.168.2.27/dashboard/project/
+Username - admin
+Password - 
+
+
+# Login Password
+cd /opt/stack/devstack
+
+cat .localrc.auto OR .localrc.password
+
+Done!
+===========================================================================================================================================================================
+
+
+
+																																							Made by IV
