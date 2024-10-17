@@ -82,7 +82,7 @@ Configration Git
 	
 	way 2
 	
-	Create a PR  (Pull Reques)
+	Create a PR  (Pull Request)
 	
 #Pull command
 
