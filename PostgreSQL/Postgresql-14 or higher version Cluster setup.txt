@@ -1,0 +1,65 @@
+Step 1: Install PostgreSQL 14 or above postgresql Server
+Step 2: Configure Primary Node
+sudo -u postgres psql
+CREATE ROLE sigmastream WITH REPLICATION LOGIN PASSWORD 'SigmaStream#1';
+
+Step 3: update postgresql conf file
+sudo vim /etc/postgresql/14/main/postgresql.conf
+
+Add below line which alread commented on current conf file on primary node
+
+listen_addresses = '*'
+max_wal_senders = 3
+wal_keep_size = 1GB
+wal_level = logical
+wal_log_hints = on
+
+
+Add below line on primary node for all three node
+
+host  replication   replicator  192.168.2.94/32   md5
+host  replication   replicator  192.168.2.95/32   md5
+host  replication   replicator  192.168.2.96/32   md5
+
+restart Postgresql - sudo systemctl restart postgresql
+
+
+Step 4 : Configure Replica Node
+
+Stop postgreSQL - sudo systemctl stop postgresql
+
+Remove current data directory  - sudo rm -rv /var/lib/postgresql/14/main/
+
+Now run the pg_basebackup utility as shown to copy data from the primary node to the replica node.
+
+sudo pg_basebackup -h 192.168.2.94 -U replicator -X stream -C -S replica_1 -v -R -W -D /var/lib/postgresql/14/main/ - for node 2
+
+sudo pg_basebackup -h 192.168.2.94 -U replicator -X stream -C -S replica_2 -v -R -W -D /var/lib/postgresql/14/main/  - for node 3
+
+you will get successfully backup done message in output
+
+sudo chown postgres -R /var/lib/postgresql/14/main/   -  change ownership for data directory
+
+start postgresql - sudo systemctl start postgresql
+
+
+Step 5 : Test The Replication Setup
+
+sudo -u postgres psql
+
+SELECT client_addr, state
+FROM pg_stat_replication; 
+
+you will get replica node streaming status here
+
+ client_addr  |   state
+--------------+-----------
+ 192.168.2.95 | streaming
+ 192.168.2.96 | streaming
+ 
+ 
+Refrennce link - https://www.cherryservers.com/blog/how-to-set-up-postgresql-database-replication
+
+
+
+
